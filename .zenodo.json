@@ -8,6 +8,11 @@
   "creators": [
     {
       "name": "Bartolomeo Bogliolo",
+      "affiliation": "Independent",
+      "orcid": "0009-0001-2797-8581"
+    },
+    {
+      "name": "Giuseppe Innamorato",
       "affiliation": "Independent"
     }
   ],

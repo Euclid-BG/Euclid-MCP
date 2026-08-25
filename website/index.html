@@ -262,18 +262,6 @@ brew install swi-prolog          <span class="c-com"># apt install swi-prolog ·
     <p class="bench-note">The <code>euclid-mcp</code> executable ships with the pip package — no paths or working directory needed. Running from source instead? Use <code>"command": "python3", "args": ["-m", "euclid_mcp"]</code> with <code>cwd</code> set to the repo.</p>
   </div>
   <div class="qs-block">
-    <h3>Or try the interactive REPL — included in the same pip package</h3>
-    <pre class="code">$ euclid-cli
-Euclid-MCP REPL — type facts and rules in Euclid-IR, then <span class="c-str">`? query`</span>.
-euclid &gt; human(socrates)
-euclid &gt; mortal($x) IF human($x)
-euclid &gt; ? mortal($who)
-Solution 1:
-  who: socrates
-mortal(socrates)  [rule]
-  human(socrates)  [fact]</pre>
-  </div>
-  <div class="qs-block">
     <h3>Or call the HTTP API from n8n, Zapier, Make, curl…</h3>
     <pre class="code"><span class="c-com"># Start the API server once — from a clone:</span>
 git clone https://github.com/Euclid-BG/Euclid-MCP &amp;&amp; cd Euclid-MCP
@@ -284,6 +272,18 @@ python3 integrations/euclid_api.py --port 8080
 curl -X POST http://localhost:8080/reason \
   -H "Content-Type: application/json" \
   -d '{"knowledge": "human(socrates)\nmortal($x) IF human($x)\n? mortal($who)"}'</pre>
+  </div>
+  <div class="qs-block">
+    <h3>Or try the interactive REPL — included in the same pip package</h3>
+    <pre class="code">$ euclid-cli
+Euclid-MCP REPL — type facts and rules in Euclid-IR, then <span class="c-str">`? query`</span>.
+euclid &gt; human(socrates)
+euclid &gt; mortal($x) IF human($x)
+euclid &gt; ? mortal($who)
+Solution 1:
+  who: socrates
+mortal(socrates)  [rule]
+  human(socrates)  [fact]</pre>
   </div>
 </section>
 
