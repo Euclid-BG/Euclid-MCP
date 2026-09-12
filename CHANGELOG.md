@@ -4,9 +4,18 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-## [Unreleased]
+## [0.5.0] — 2026-09-12
 
 ### Added
+- **Disjunction (OR) in rule bodies** —
+  `can($u) IF is_admin($u) OR has_role($u, auditor)` is expanded into one
+  pure Horn clause per alternative at parse time, so both backends keep
+  reasoning over Horn clauses only. `AND` binds tighter than `OR`;
+  parenthesized groups `(a OR b) AND c` expand distributively; `NOT (group)`
+  is rejected with a clear parse error. A `# RULE: <id>` is carried by every
+  expanded branch (auditable proofs), `rules_count` counts the expanded
+  clauses while `content_hash` stays tied to the source text, multi-line
+  `OR` bodies are supported, and the LSP parser tracks them.
 - **Project landing page** — `website/index.html`, deployed to GitHub Pages
   via `.github/workflows/pages.yml`: a single-page site covering the why,
   the architecture, an Euclid-IR tour, the eight tools, the KB lifecycle,
@@ -14,8 +23,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **Demo GIFs** — three recorded `euclid-cli` sessions embedded in the
   landing page's Demo section (`website/assets/demo/`): multi-hop RBAC with
   proof tree, diagnose + what-if on a denied deploy, and negation as failure
-  citing rule SEC-042. `diagnose.gif` is also showcased in the README via a
-  raw URL, so it renders on GitHub and PyPI alike.
+  citing rule SEC-042. `diagnose.gif` is showcased on the landing page; the
+  README embed of it was removed.
 
 ### Changed
 - **Landing-page flow** — nav and sections reordered to follow the visitor
