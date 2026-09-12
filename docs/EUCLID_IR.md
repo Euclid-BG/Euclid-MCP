@@ -657,6 +657,27 @@ If the rules carry `# RULE:` IDs, `explain` cites them: *"mortal(socrates) is
 derived by rule BIO-001 from: human(socrates)."* and the `structured_steps`
 `rule_id` fields carry the ID.
 
+### 9. Disjunction (OR)
+
+```
+user(alice)
+user(bob)
+user(carol)
+role(alice, admin)
+role(carol, support)
+signed_off(bob)
+
+# Admin OR support — expanded into two Horn clauses at parse time
+can_escalate($u) IF role($u, admin) OR role($u, support)  # RULE: ESC-1
+
+# Group with AND > OR precedence: (auditor OR controller) AND signed_off
+promoted($u) IF (role($u, auditor) OR role($u, controller)) AND signed_off($u)
+? can_escalate($who)
+```
+
+**Result:** `$who = alice`, `$who = carol` — each produced through its own
+Or-branch of rule `ESC-1`, so `explain` cites the same source rule for both.
+
 ---
 
 ## Comparison with Prolog
