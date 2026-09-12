@@ -122,6 +122,10 @@ rainy
 mortal($x) IF human($x)  # RULE: BIO-001
 ancestor($x, $y) IF parent($x, $z) AND ancestor($z, $y)
 
+# Disjunction (expanded into one Horn clause per branch at parse time)
+can_access($u) IF is_admin($u) OR has_role($u, auditor)
+can_deploy($u) IF (is_admin($u) OR support($u)) AND active($u)   # groups + AND > OR
+
 # Negation
 blocked($user) IF NOT active($user)
 
@@ -137,13 +141,16 @@ stale($user) IF user($user) AND last_login($user, $days) AND $days > 90
 - Variables: `$name` (lowercase after `$`)
 - Implication: `IF` (case-insensitive)
 - Conjunction: `AND` (case-insensitive)
+- Disjunction: `OR` (case-insensitive) — expands to one rule per branch;
+  `AND` binds tighter than `OR`; parenthesized groups `(a OR b) AND c` expand
+  distributively; `NOT` applies to single goals only (`NOT (group)` rejected)
 - Negation: `NOT` (case-insensitive)
 - Query prefix: `?` on a separate line
 - Predicates: lowercase with args in `()`
 - Wildcards: `_` (anonymous variable)
 - Comments: `#` or `//`
 - Rule IDs: trailing `# RULE: <id>` → surfaced as `rule_id` in proofs, cited by `explain`
-- Multi-line rules: continuation implied after `IF` or `AND`, and for lines starting with `AND`
+- Multi-line rules: continuation implied after `IF` or `AND`, and for lines starting with `AND` (also after `OR` and lines starting with `OR`)
 
 ### Supported operators
 `>`, `>=`, `<`, `<=`, `==`, `is`, `!=`
@@ -208,5 +215,5 @@ Optional local hooks are provided via `.pre-commit-config.yaml`
 
 - Predicate/fact names: **lowercase only** (case-insensitive: `Human(ALICE)` → `human(alice)`)
 - Variables: `$` + lowercase (`$x`, `$who`)
-- No disjunction, cut, list syntax, findall/bagof, dynamic assert/retract, modules
-- Horn-clause logic only
+- No cut, list syntax, findall/bagof, dynamic assert/retract, modules
+- Horn-clause logic only (disjunction `OR` in rule bodies is expanded into Horn clauses at parse time)

@@ -83,7 +83,8 @@ to the Prolog backend — verified per-question on example 07
 ## Limitations (by design)
 
 * **No cut** (`!`), lists, `findall`/`bagof`, dynamic `assert`/`retract`,
-  modules, or disjunction — same restriction as Euclid-IR itself.
+  or modules — and no disjunction either: `OR` in Euclid-IR rules is
+  desugared into pure Horn clauses at parse time, before the engine sees it.
 * **Depth-limited recursion** (`max_depth`, default 30) and a wall-clock
   timeout; performance is tuned for small KBs (a few hundred facts), not large
   datasets.
