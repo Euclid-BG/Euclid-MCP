@@ -33,6 +33,7 @@ class KB(BaseModel):
     query: Optional[str] = None
     version: Optional[str] = None
     rule_ids: dict[int, str] = Field(default_factory=dict)
+    rule_sources: dict[int, int] = Field(default_factory=dict)
 
 
 # ── Explanation models ──

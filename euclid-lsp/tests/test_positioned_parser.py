@@ -85,3 +85,18 @@ class TestPositionedParser:
         assert item.start_line == 0
         assert item.end_line == 2
         assert len(item.body_goals) >= 2
+
+    def test_multiline_or_continuation(self):
+        text = "can_access($u, $r) IF\n    admin($u) OR\n    role($u, dev)"
+        pkb = parse_positioned(text)
+        assert len(pkb.items) == 1
+        item = pkb.items[0]
+        assert item.start_line == 0
+        assert item.end_line == 2
+        assert item.body_goals == ["admin($u)", "role($u, dev)"]
+
+    def test_or_rule_body_goals_split_on_or(self):
+        text = "can($u) IF admin($u) OR dev($u)"
+        pkb = parse_positioned(text)
+        item = pkb.items[0]
+        assert item.body_goals == ["admin($u)", "dev($u)"]
