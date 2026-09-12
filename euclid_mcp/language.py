@@ -15,7 +15,14 @@ _RULE_ID_PATTERN = re.compile(r"(?<!\S)\s*#\s*rule:\s*(.+?)\s*$", re.IGNORECASE)
 # three agree on what a variable is regardless of script or accents.
 VAR_NAME_RE = re.compile(r"\$([^\W\d_]\w*)", re.UNICODE)
 
-_RESERVED_KEYWORDS = {"if", "and", "not", "is", "true", "false"}
+# Continuation markers for multi-line rule bodies: a piece that ends with a
+# bare ` and`/` or` (trailing style), or a next line that opens with
+# `and`/`or` (leading style). Word boundaries keep predicates like `band` or
+# `color` from being misread as continuation markers.
+_TRAILING_AND_OR = re.compile(r"\s+(?:and|or)$")
+_LEADING_AND_OR = re.compile(r"(?:and|or)(?:\s|$)")
+
+_RESERVED_KEYWORDS = {"if", "and", "or", "not", "is", "true", "false"}
 
 
 def _fold_ascii(s: str) -> str:
@@ -124,10 +131,14 @@ def parse(text: str) -> KB:
     if _is_yaml(text):
         kb = _parse_yaml(text)
         kb.version = version
-        return _normalize_kb(kb)
+        _normalize_kb(kb)
+        _expand_or_rules(kb)
+        return kb
     kb = _parse_text(text)
     kb.version = version
-    return _normalize_kb(kb)
+    _normalize_kb(kb)
+    _expand_or_rules(kb)
+    return kb
 
 
 def _extract_version(text: str) -> str | None:
@@ -270,17 +281,18 @@ def _parse_text(text: str) -> KB:
                 body_str = ""
             body_str = body_str.strip()
             # Multi-line rule bodies. A line is a continuation when the
-            # body so far is empty or ends with `and` (trailing style),
-            # or when the NEXT meaningful line opens with `and`
-            # (leading style — the common Prolog habit):
+            # body so far is empty or ends with `and`/`or` (trailing
+            # style), or when the NEXT meaningful line opens with
+            # `and`/`or` (leading style — the common Prolog habit):
             #
             #     p($x) IF $x > 0
             #           AND $y is $x - 1
+            #           OR $z is $x
             #
             # A non-continuation line is pushed back for the main loop.
             pieces: list[str] = [body_str] if body_str else []
             while True:
-                if not pieces or pieces[-1].endswith("and"):
+                if not pieces or _TRAILING_AND_OR.search(pieces[-1]):
                     nxt, nxt_strings, nxt_rid = next_line()
                     if nxt is None:
                         break
@@ -291,7 +303,7 @@ def _parse_text(text: str) -> KB:
                     continue
                 mark = idx
                 nxt, nxt_strings, nxt_rid = next_line()
-                if nxt is not None and (nxt == "and" or nxt.startswith("and ")):
+                if nxt is not None and _LEADING_AND_OR.match(nxt):
                     line_strings.extend(nxt_strings)
                     if nxt_rid:
                         rule_id = nxt_rid
@@ -311,9 +323,9 @@ def _parse_text(text: str) -> KB:
                     "`# rule:` is not allowed on a fact. "
                     "It applies only to rules."
                 )
-            if line == "and" or line.startswith("and "):
+            if line == "and" or line.startswith("and ") or line == "or" or line.startswith("or "):
                 raise ValueError(
-                    "Statement starts with 'and': continuation lines belong "
+                    "Statement starts with 'and'/'or': continuation lines belong "
                     "to a rule written above them."
                 )
             facts.append(_restore_strings(line, line_strings))
@@ -336,6 +348,233 @@ def _normalize_kb(kb: KB) -> KB:
         _validate_no_bare_literal(head, "a rule head")
     if kb.query:
         _validate_no_keywords(kb.query)
+    return kb
+
+
+# ── OR (disjunction) expansion ───────────────────────────────────────────────
+
+# Splits a rule body on ``IF`` (case-insensitive), mirroring the backends.
+_IF_RE = re.compile(r"\s+if\s+", re.IGNORECASE)
+
+
+def _split_body(text: str, *, is_or: bool) -> list[str]:
+    """Split a rule body on top-level ``or`` (is_or=True) or ``and``/``,``
+    (is_or=False) separators.
+
+    Parens and quoted strings are tracked, so separators inside
+    ``parent(ann, "Adams, and the rest")`` or grouped ``(a OR b)`` never
+    split. ``and``/``or`` only act as separators at word boundaries (whitespace
+    around), so atoms like ``band`` or ``color`` are left intact.
+    """
+    word = "or" if is_or else "and"
+    parts: list[str] = []
+    cur: list[str] = []
+    depth = 0
+    in_str: str | None = None
+    i, n = 0, len(text)
+    while i < n:
+        ch = text[i]
+        if in_str is not None:
+            cur.append(ch)
+            if ch == "\\" and i + 1 < n:
+                cur.append(text[i + 1])
+                i += 2
+                continue
+            if ch == in_str:
+                in_str = None
+            i += 1
+            continue
+        if ch in "\"'":
+            in_str = ch
+            cur.append(ch)
+            i += 1
+            continue
+        if ch == "(":
+            depth += 1
+            cur.append(ch)
+            i += 1
+            continue
+        if ch == ")":
+            depth -= 1
+            cur.append(ch)
+            i += 1
+            continue
+        if depth == 0:
+            if ch == "," and not is_or:
+                parts.append("".join(cur).strip())
+                cur = []
+                i += 1
+                continue
+            if text[i : i + len(word)].lower() == word:
+                # word separator: whitespace before and after (or line ends)
+                before_ok = (not cur) or cur[-1].isspace()
+                after = i + len(word)
+                after_ok = after >= n or text[after].isspace()
+                if before_ok and after_ok:
+                    parts.append("".join(cur).strip())
+                    cur = []
+                    i = after
+                    continue
+        cur.append(ch)
+        i += 1
+    if cur:
+        parts.append("".join(cur).strip())
+    return [p for p in parts if p]
+
+
+def _unwrap_group(seg: str) -> str | None:
+    """Inner text when ``seg`` is a fully parenthesized group ``( ... )``.
+
+    Returns ``None`` when the segment is not exactly one balanced group (e.g.
+    ``a($x)`` or ``(a) AND (b)``), so non-group literals pass through.
+    """
+    seg = seg.strip()
+    if not seg.startswith("("):
+        return None
+    depth = 0
+    in_str: str | None = None
+    i, n = 0, len(seg)
+    while i < n:
+        ch = seg[i]
+        if in_str is not None:
+            if ch == "\\" and i + 1 < n:
+                i += 2
+                continue
+            if ch == in_str:
+                in_str = None
+            i += 1
+            continue
+        if ch in "\"'":
+            in_str = ch
+        elif ch == "(":
+            depth += 1
+        elif ch == ")":
+            depth -= 1
+            if depth == 0:
+                return seg[1:i].strip() if i == n - 1 else None
+        i += 1
+    return None
+
+
+def _dedup_conjunctions(conjunctions: list[list[str]]) -> list[list[str]]:
+    """Drop duplicate disjuncts preserving first-seen order (e.g. ``a OR a``)."""
+    seen: set[tuple[str, ...]] = set()
+    out: list[list[str]] = []
+    for conj in conjunctions:
+        key = tuple(conj)
+        if key not in seen:
+            seen.add(key)
+            out.append(conj)
+    return out
+
+
+def _dnf(body: str) -> list[list[str]]:
+    """Convert a (possibly grouped) body into disjunctive normal form.
+
+    Returns a list of conjunctions, each a list of goal strings. The rule
+    ``H IF body`` then becomes one pure Horn rule per conjunction — the
+    solver never sees an ``OR``.
+
+    Semantics: ``AND`` binds tighter than ``OR`` (logic convention), so
+    ``a OR b AND c`` is ``a OR (b AND c)`` and yields the rules ``H IF a``
+    and ``H IF b, c``. Parenthesized groups ``(...)`` are expanded
+    distributively: ``(a OR b) AND c`` yields ``H IF a, c`` and ``H IF b, c``.
+    """
+    conjunctions: list[list[str]] = []
+    for branch in _split_body(body, is_or=True):
+        branch = branch.strip()
+        if not branch:
+            continue
+        partial: list[list[str]] = [[]]
+        for seg in _split_body(branch, is_or=False):
+            seg = seg.strip()
+            if not seg:
+                continue
+            if seg.lower().startswith("not ("):
+                raise ValueError(
+                    "NOT over a parenthesized group is not supported "
+                    f"(got {seg!r}); negate single goals instead"
+                )
+            inner = _unwrap_group(seg)
+            if inner is not None:
+                sub = _dnf(inner)
+                partial = [c + list(g) for c in partial for g in sub]
+            else:
+                partial = [c + [seg] for c in partial]
+        conjunctions.extend(partial)
+    return _dedup_conjunctions(conjunctions)
+
+
+def _contains_or(text: str) -> bool:
+    """True when the text has a word-boundary ``or`` outside quoted strings.
+
+    Group depth is irrelevant: an ``or`` inside ``(a OR b)`` still needs
+    expansion. Atoms like ``color`` or string literals like ``"now or never"``
+    must not count.
+    """
+    in_str: str | None = None
+    i, n = 0, len(text)
+    while i < n:
+        ch = text[i]
+        if in_str is not None:
+            if ch == "\\" and i + 1 < n:
+                i += 2
+                continue
+            if ch == in_str:
+                in_str = None
+            i += 1
+            continue
+        if ch in "\"'":
+            in_str = ch
+            i += 1
+            continue
+        if text[i : i + 2].lower() == "or":
+            before_ok = i == 0 or text[i - 1].isspace()
+            after_ok = i + 2 >= n or text[i + 2].isspace()
+            if before_ok and after_ok:
+                return True
+        i += 1
+    return False
+
+
+def _expand_rule(rule: str, rule_id: str | None) -> list[tuple[str, str | None]]:
+    """Expand one rule with OR in its body into pure Horn rules.
+
+    Returns ``(rule_text, rule_id)`` pairs; rules without OR pass through
+    unchanged so ``parse()`` output always consists of Horn clauses only.
+    """
+    parts = _IF_RE.split(rule, maxsplit=1)
+    head, body = parts[0].strip(), (parts[1].strip() if len(parts) == 2 else "")
+    if not _contains_or(body):
+        return [(rule, rule_id)]
+    conjunctions = _dnf(body) or [[body]]
+    return [
+        (f"{head} if {', '.join(conj)}", rule_id) for conj in conjunctions
+    ]
+
+
+def _expand_or_rules(kb: KB) -> KB:
+    """Expand OR in rule bodies into pure Horn rules, in place.
+
+    Each expanded branch keeps the source rule's ``rule_id`` (so every proof
+    path cites it) and ``rule_sources`` records provenance (expanded index →
+    original index) so ``check_kb`` never misreads siblings as duplicate IDs.
+    """
+    new_rules: list[str] = []
+    new_ids: dict[int, str] = {}
+    new_sources: dict[int, int] = {}
+    for idx, rule in enumerate(kb.rules):
+        source = kb.rule_sources.get(idx, idx)
+        rule_id = kb.rule_ids.get(idx)
+        for expanded, rid in _expand_rule(rule, rule_id):
+            new_rules.append(expanded)
+            out_idx = len(new_rules) - 1
+            if rid:
+                new_ids[out_idx] = rid
+            new_sources[out_idx] = source
+    kb.rules = new_rules
+    kb.rule_ids = new_ids
+    kb.rule_sources = new_sources
     return kb
 
 

@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Euclid-MCP — Deterministic reasoning for AI agents</title>
 <meta name="description" content="An MCP server that turns facts into formal proofs. Your LLM describes the world in Euclid-IR; a deterministic engine does the deduction. Every answer comes with a proof tree.">
-<!-- mcp-name: io.github.meob/euclid-mcp -->
+<!-- mcp-name: io.github.Euclid-BG/euclid-mcp -->
 <style>
   :root {
     --bg: #0b0e14;
@@ -191,7 +191,7 @@
     <li><a href="#demo">Demo</a></li>
     <li><a href="#benchmarks">Benchmarks</a></li>
   </ul>
-  <a class="gh-btn" href="https://github.com/meob/Euclid-MCP">★ GitHub</a>
+  <a class="gh-btn" href="https://github.com/Euclid-BG/Euclid-MCP">★ GitHub</a>
 </nav>
 
 <header class="hero">
@@ -210,8 +210,8 @@
   <div class="hero-badges">
     <img src="https://img.shields.io/pypi/v/euclid-mcp?color=blue" alt="PyPI version">
     <img src="https://img.shields.io/pypi/pyversions/euclid-mcp" alt="Python versions">
-    <img src="https://img.shields.io/github/license/meob/Euclid-MCP" alt="License">
-    <img src="https://img.shields.io/github/actions/workflow/status/meob/Euclid-MCP/ci.yml?branch=main&label=CI" alt="CI">
+    <img src="https://img.shields.io/github/license/Euclid-BG/Euclid-MCP" alt="License">
+    <img src="https://img.shields.io/github/actions/workflow/status/Euclid-BG/Euclid-MCP/ci.yml?branch=main&label=CI" alt="CI">
   </div>
 </header>
 
@@ -262,6 +262,18 @@ brew install swi-prolog          <span class="c-com"># apt install swi-prolog ·
     <p class="bench-note">The <code>euclid-mcp</code> executable ships with the pip package — no paths or working directory needed. Running from source instead? Use <code>"command": "python3", "args": ["-m", "euclid_mcp"]</code> with <code>cwd</code> set to the repo.</p>
   </div>
   <div class="qs-block">
+    <h3>Or call the HTTP API from n8n, Zapier, Make, curl…</h3>
+    <pre class="code"><span class="c-com"># Start the API server once — from a clone:</span>
+git clone https://github.com/Euclid-BG/Euclid-MCP &amp;&amp; cd Euclid-MCP
+python3 integrations/euclid_api.py --port 8080
+<span class="c-com"># …or with Docker (bundles SWI-Prolog): docker compose up euclid-api</span>
+
+<span class="c-com"># …then call it:</span>
+curl -X POST http://localhost:8080/reason \
+  -H "Content-Type: application/json" \
+  -d '{"knowledge": "human(socrates)\nmortal($x) IF human($x)\n? mortal($who)"}'</pre>
+  </div>
+  <div class="qs-block">
     <h3>Or try the interactive REPL — included in the same pip package</h3>
     <pre class="code">$ euclid-cli
 Euclid-MCP REPL — type facts and rules in Euclid-IR, then <span class="c-str">`? query`</span>.
@@ -272,18 +284,6 @@ Solution 1:
   who: socrates
 mortal(socrates)  [rule]
   human(socrates)  [fact]</pre>
-  </div>
-  <div class="qs-block">
-    <h3>Or call the HTTP API from n8n, Zapier, Make, curl…</h3>
-    <pre class="code"><span class="c-com"># Start the API server once — from a clone:</span>
-git clone https://github.com/meob/Euclid-MCP &amp;&amp; cd Euclid-MCP
-python3 integrations/euclid_api.py --port 8080
-<span class="c-com"># …or with Docker (bundles SWI-Prolog): docker compose up euclid-api</span>
-
-<span class="c-com"># …then call it:</span>
-curl -X POST http://localhost:8080/reason \
-  -H "Content-Type: application/json" \
-  -d '{"knowledge": "human(socrates)\nmortal($x) IF human($x)\n? mortal($who)"}'</pre>
   </div>
 </section>
 
@@ -461,7 +461,7 @@ blocked(<span class="c-var">$u</span>) <span class="c-kw">IF</span> <span class=
   </div>
   <p class="bench-note">
     On small tasks (5–50 facts) all configurations score 5/5 — scale is where probabilistic reasoning breaks.
-    Full methodology: <a href="https://github.com/meob/Euclid-MCP/tree/main/benchmarks/BENCHMARKS.md">benchmark reports</a>.
+    Full methodology: <a href="https://github.com/Euclid-BG/Euclid-MCP/tree/main/benchmarks/BENCHMARKS.md">benchmark reports</a>.
   </p>
 </section>
 
@@ -491,11 +491,11 @@ blocked(<span class="c-var">$u</span>) <span class="c-kw">IF</span> <span class=
 
 <footer>
   <div class="links">
-    <a href="https://github.com/meob/Euclid-MCP">GitHub</a>
+    <a href="https://github.com/Euclid-BG/Euclid-MCP">GitHub</a>
     <a href="https://pypi.org/project/euclid-mcp/">PyPI</a>
     <a href="https://arxiv.org/abs/2607.21412" target="_blank">arXiv paper</a>
-    <a href="https://github.com/meob/Euclid-MCP/blob/main/docs/EUCLID_IR.md">Euclid-IR spec</a>
-    <a href="https://github.com/meob/Euclid-MCP/blob/main/docs/DIDACTIC.md">Tutorial</a>
+    <a href="https://github.com/Euclid-BG/Euclid-MCP/blob/main/docs/EUCLID_IR.md">Euclid-IR spec</a>
+    <a href="https://github.com/Euclid-BG/Euclid-MCP/blob/main/docs/DIDACTIC.md">Tutorial</a>
   </div>
   <div>LLMs describe. Euclid proves. · Apache 2.0 · Built on SWI-Prolog</div>
 </footer>

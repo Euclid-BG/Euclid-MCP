@@ -66,3 +66,13 @@ query: ancestor(tom, $who)
         import pytest
         with pytest.raises(ValueError):
             build_kb_summary("p(a)  # rule: NOT-ALLOWED-ON-FACT")
+
+    def test_or_rule_expanded_with_single_rule_id(self):
+        digest = build_kb_summary(
+            "human(socrates)\nhero(achilles)\n"
+            "mortal($x) IF human($x) OR hero($x)  # rule: M-1\n"
+            "? mortal($who)"
+        )
+        # the two Horn branches each list, and the rule id is shown once
+        assert "- mortal($x) IF human($x)  # rule: M-1" in digest
+        assert "- mortal($x) IF hero($x)" in digest

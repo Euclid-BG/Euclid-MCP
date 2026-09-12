@@ -103,11 +103,14 @@ def build_kb_summary(knowledge: str) -> str:
 
     if kb.rules:
         lines.append("Rules:")
+        shown_origins: set[int] = set()
         for idx, rule in enumerate(kb.rules):
             display = _display_rule(rule)
             rule_id = kb.rule_ids.get(idx)
-            if rule_id:
+            origin = kb.rule_sources.get(idx, idx)
+            if rule_id and origin not in shown_origins:
                 display = f"{display}  # rule: {rule_id}"
+                shown_origins.add(origin)
             lines.append(f"- {display}")
         lines.append("")
 

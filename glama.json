@@ -1,6 +1,6 @@
 {
   "$schema": "https://glama.ai/mcp/schemas/server.json",
-  "maintainers": ["meob"],
+  "maintainers": ["Euclid-BG"],
   "name": "Euclid-MCP",
   "description": "MCP server for deterministic logical reasoning — facts become formal proofs with proof trees. Uses SWI-Prolog when available, otherwise a pure-Python native engine for small knowledge bases. Local-only: use Install Server, not Try in Browser."
 }

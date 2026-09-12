@@ -1,25 +1,19 @@
 # Euclid-MCP
 
-[![Euclid-MCP MCP server](https://glama.ai/mcp/servers/meob/Euclid-MCP/badges/score.svg)](https://glama.ai/mcp/servers/meob/Euclid-MCP)
+[![Euclid-MCP MCP server](https://glama.ai/mcp/servers/Euclid-BG/Euclid-MCP/badges/score.svg)](https://glama.ai/mcp/servers/Euclid-BG/Euclid-MCP)
 [![PyPI version](https://img.shields.io/pypi/v/euclid-mcp?color=blue)](https://pypi.org/project/euclid-mcp/)
 [![Python versions](https://img.shields.io/pypi/pyversions/euclid-mcp)](https://pypi.org/project/euclid-mcp/)
-[![License](https://img.shields.io/github/license/meob/Euclid-MCP?cacheSeconds=86400)](LICENSE)
-[![CI](https://img.shields.io/github/actions/workflow/status/meob/Euclid-MCP/ci.yml?branch=main&label=CI)](https://github.com/meob/Euclid-MCP/actions/workflows/ci.yml)
-[![Coverage](https://img.shields.io/codecov/c/github/meob/Euclid-MCP)](https://codecov.io/gh/meob/Euclid-MCP)
+[![License](https://img.shields.io/github/license/Euclid-BG/Euclid-MCP?cacheSeconds=86400)](LICENSE)
+[![CI](https://img.shields.io/github/actions/workflow/status/Euclid-BG/Euclid-MCP/ci.yml?branch=main&label=CI)](https://github.com/Euclid-BG/Euclid-MCP/actions/workflows/ci.yml)
+[![Coverage](https://img.shields.io/codecov/c/github/Euclid-BG/Euclid-MCP)](https://codecov.io/gh/Euclid-BG/Euclid-MCP)
 
 **MCP server for logical reasoning** — turns facts into formal proofs.
 
-<!-- mcp-name: io.github.meob/euclid-mcp -->
+<!-- mcp-name: io.github.Euclid-BG/euclid-mcp -->
 
 Euclid-MCP is a hybrid cognitive architecture: a lightweight LLM describes the world in facts, and a deterministic engine performs the actual deduction. The LLM never needs to reason — it only needs to describe.
 
 With Euclid-MCP, an 8B model can solve reasoning tasks that stump even 400B+ cloud models — because the engine handles deduction deterministically. Every answer comes with a proof tree, so you can trace *why* a conclusion holds, not just *what* it is. Use it to enforce RBAC policies, audit cloud compliance, validate loan eligibility rules, or reason over any domain where answers must be explainable and verifiable.
-
-<p align="center">
-  <img src="https://raw.githubusercontent.com/meob/Euclid-MCP/main/website/assets/demo/diagnose.gif"
-       alt="euclid-cli session: diagnose why bob cannot deploy, then enable it with a what-if role grant"
-       width="720">
-</p>
 
 Euclid-MCP is written in Python and uses **Euclid-IR**, a human-readable intermediate language designed for both AI agents and humans. It uses **SWI-Prolog** as its primary inference engine — and, where SWI-Prolog is not available (e.g. minimal containers), a pure-Python **native engine** that interprets Euclid-IR directly (see [`docs/NATIVE_ENGINE.md`](docs/NATIVE_ENGINE.md)).
 It can be consumed in multiple ways: via **MCP** by AI agents (OpenCode, Claude, Cursor), via **HTTP** by tools and automation platforms (n8n, Zapier, Make), and via **Python API** for direct integration. Euclid-IR rules can also be used to **augment RAG** pipelines with deterministic policy enforcement.
@@ -91,6 +85,8 @@ Full language reference: [`docs/EUCLID_IR.md`](docs/EUCLID_IR.md)
 | Variables | `$name` (lowercase) | `$who`, `$x`, `$count` |
 | Implication | `IF` | `mortal($x) IF human($x)` |
 | Conjunction | `AND` | `p($x) AND q($x)` |
+| Disjunction | `OR` | `can($u) IF is_admin($u) OR has_role($u, auditor)` |
+| Grouping | `(...)` | `(is_admin($u) OR support($u)) AND active($u)` |
 | Negation | `NOT` | `NOT active($user)` |
 | Boolean literals | `true` / `false` in rule bodies | `merchant($m) IF false` |
 | Query | `? predicate` | `? ancestor(tom, $who)` |
@@ -142,6 +138,23 @@ Queries can combine multiple predicates:
 ```
 
 This returns solutions where both conditions are satisfied simultaneously.
+
+### Disjunction (OR)
+
+Rule bodies can express alternatives with `OR`. The parser expands each
+alternative into its own Horn clause at load time — the solver only ever
+sees pure Horn clauses:
+
+```
+# A user can deploy when they are an admin, OR a dev on an approved env
+can_deploy($u, $env) IF
+    is_admin($u) OR
+    (has_role($u, dev) AND env_approved($u, $env))
+```
+
+`AND` binds tighter than `OR`; parenthesized groups expand distributively.
+`NOT` applies to single goals only. A `# RULE: <id>` is carried by every
+expanded branch, so proofs stay auditable against the source rule.
 
 ## Why External Inference?
 
@@ -377,7 +390,7 @@ pip install euclid-mcp
 ### From source
 
 ```bash
-git clone https://github.com/meob/Euclid-MCP
+git clone https://github.com/Euclid-BG/Euclid-MCP
 cd Euclid-MCP
 python3 -m venv .venv && source .venv/bin/activate
 pip install -e .

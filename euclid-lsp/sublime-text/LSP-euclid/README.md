@@ -1,7 +1,7 @@
 # LSP-euclid
 
 [LSP](https://github.com/sublimelsp/LSP) client plugin for
-[Euclid-IR](https://github.com/meob/Euclid-MCP) — deterministic logical
+[Euclid-IR](https://github.com/Euclid-BG/Euclid-MCP) — deterministic logical
 reasoning via Prolog.
 
 ## Features
@@ -36,7 +36,7 @@ uv pip install -e /path/to/Euclid-MCP/euclid-lsp
 ```bash
 cd ~/.config/sublime-text/Packages/User  # Linux
 # or ~/Library/Application Support/Sublime Text/Packages/User  # macOS
-git clone https://github.com/meob/Euclid-MCP.git LSP-euclid
+git clone https://github.com/Euclid-BG/Euclid-MCP.git LSP-euclid
 ```
 
 2. Restart Sublime Text

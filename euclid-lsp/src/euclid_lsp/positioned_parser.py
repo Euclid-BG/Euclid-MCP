@@ -7,10 +7,12 @@ from dataclasses import dataclass, field
 from typing import Optional
 
 from euclid_mcp.language import (
+    _TRAILING_AND_OR,
     VERSION_PATTERN,
     _extract_rule_id,
     _extract_strings,
     _fold_ascii,
+    _split_body,
 )
 
 
@@ -117,7 +119,7 @@ def parse_positioned(text: str) -> PositionedKB:
             body_str = body_str.strip()
 
             # Multi-line continuation
-            while body_str == "" or body_str.endswith("and"):
+            while body_str == "" or _TRAILING_AND_OR.search(body_str):
                 if i >= len(lines):
                     break
                 next_raw = lines[i]
@@ -139,8 +141,10 @@ def parse_positioned(text: str) -> PositionedKB:
                 else:
                     body_str = body_str + " " + next_line
 
-            body_goals = re.split(r"\s+and\s+", body_str)
-            body_goals = [p.strip() for p in body_goals if p.strip()]
+            body_goals = []
+            for branch in _split_body(body_str, is_or=True):
+                body_goals.extend(_split_body(branch, is_or=False))
+            body_goals = [p for p in body_goals if p.strip()]
 
             rule_text = _fold_ascii(f"{head_str.strip()} if {body_str}")
             from euclid_mcp.language import _restore_strings

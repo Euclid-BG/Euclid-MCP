@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "euclid-lsp"
-version = "0.4.5"
+version = "0.5.0"
 description = "LSP server for Euclid-IR — real-time diagnostics, autocomplete, and hover"
 readme = "README.md"
 requires-python = ">=3.10"

@@ -76,7 +76,9 @@ This mirrors how a real agent would work: collect data, describe it as facts, le
 Intermediate example demonstrating all core Euclid-IR features in a single
 readable file: `@version` directive, `//` comments, string literals, zero-arity
 facts, multi-line rules with `# RULE:` IDs, `NOT` (negation), arithmetic
-comparisons (`>=`, `<=`, `==`, `!=`), wildcards (`_`), and conjunction queries.
+comparisons (`>=`, `<=`, `==`, `!=`), wildcards (`_`), conjunction queries,
+and `OR` (disjunction) with parenthesized groups and `AND > OR` precedence —
+rule `POL-05` lets support or contractor roles access internal resources.
 
 ```bash
 # Validate

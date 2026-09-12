@@ -41,6 +41,8 @@ Output: `$who = bob`, `$who = ann` (with full proof trees).
 | `head IF body` | Rule | `mortal($x) IF human($x)` |
 | `a AND b` | Conjunction | `p($x) AND q($x)` |
 | `NOT a` | Negation | `NOT active($user)` |
+| `a OR b` | Disjunction | `admin($u) OR dev($u)` |
+| `(...)` | Grouping | `is_admin($u) OR (dev($u) AND env($u, staging))` |
 | `true` / `false` | Boolean body literals | `declared($x) IF false` |
 | `? goal` | Query | `? mortal($who)` |
 | `# RULE: <id>` | Rule ID (trailing comment) | `mortal($x) IF human($x)  # RULE: BIO-001` |
@@ -106,7 +108,7 @@ are computed from the effective merged source.
 
 | Rule | Detail |
 |------|--------|
-| **Case sensitivity** | Identifiers are case-insensitive. `Human(ALICE)` normalizes to `human(alice)`. Keywords (`IF`, `AND`, `NOT`) are also case-insensitive. |
+| **Case sensitivity** | Identifiers are case-insensitive. `Human(ALICE)` normalizes to `human(alice)`. Keywords (`IF`, `AND`, `OR`, `NOT`) are also case-insensitive. |
 | **Variables** | Start with `$` followed by a lowercase letter: `$x`, `$who`, `$user_name` |
 | **Atoms** | Lowercase identifiers: `tom`, `admin_role`, `us_east_1` |
 | **String literals** | UTF-8 strings in double or single quotes: `"Alice Smith"`, `'http://example.com'` |
@@ -169,7 +171,7 @@ url(charlie, "https://example.com/path?q=1 AND foo")
 - Both `"..."` and `'...'` syntax supported
 - Choose whichever minimizes escaping
 - Strings preserve whitespace and case (not normalized to lowercase)
-- Strings containing `IF`, `AND`, or `NOT` are handled correctly
+- Strings containing `IF`, `AND`, `NOT`, or `OR` are handled correctly
 - Escape characters: `\"`, `\'`, `\\`, `\n`, `\t`
 
 **Translation to Prolog:** Passed through as Prolog strings.
@@ -186,7 +188,9 @@ mortal($x) IF human($x)
 
 - `IF` separates head from body (case-insensitive)
 - Head: a predicate (possibly with variables)
-- Body: one or more conditions connected by `AND` (case-insensitive)
+- Body: one or more conditions connected by `AND` and/or `OR`
+  (case-insensitive); see [Conjunction](#conjunction-and) and
+  [Disjunction](#disjunction-or)
 
 **Multiple conditions:**
 
@@ -222,6 +226,52 @@ eligible($user) IF registered($user) AND NOT blocked($user)
 **Semantics:** `NOT predicate` succeeds when `predicate` cannot be proven (Prolog's `\+`).
 
 **Warning:** Negation as failure is not logical negation. `NOT mortal(socrates)` succeeds if `mortal(socrates)` cannot be derived — not if it is "false."
+
+### Disjunction (OR)
+
+A rule body can express alternatives with `OR` (case-insensitive). The rule
+is expanded into one pure Horn clause per alternative at parse time, so the
+engine still reasons over Horn clauses only:
+
+```
+can_access($u, $r) IF is_admin($u) OR has_role($u, auditor)
+```
+
+is equivalent to:
+
+```
+can_access($u, $r) IF is_admin($u)
+can_access($u, $r) IF has_role($u, auditor)
+```
+
+**Precedence:** `AND` binds tighter than `OR` (logic convention), so
+`a OR b AND c` means `a OR (b AND c)`:
+
+```
+can_deploy($u) IF is_admin($u) OR has_role($u, dev) AND env_ok($u)
+# == can_deploy($u) IF is_admin($u)
+# == can_deploy($u) IF has_role($u, dev) AND env_ok($u)
+```
+
+**Grouping:** parenthesized groups mix `AND` and `OR` arbitrarily and expand
+distributively:
+
+```
+can($u) IF (is_admin($u) OR support($u)) AND active($u)
+# == can($u) IF is_admin($u) AND active($u)
+# == can($u) IF support($u) AND active($u)
+```
+
+Rules:
+- `OR` applies to rule **bodies** (and multi-line bodies); it is not
+  supported in queries or facts.
+- Negation applies to single goals: `NOT a($x)` is fine; `NOT (a OR b)`
+  (De Morgan) is rejected with a clear parse error.
+- A rule with a `# RULE: <id>` carries the same ID on every expanded branch,
+  so each proof path is still auditable against the source rule.
+- `rules_count` (in `check_kb`, `register_kb`, `list_kbs`) counts the
+  **expanded** Horn clauses that are actually loaded — `content_hash` stays
+  computed on the exact source text, unchanged.
 
 ### Boolean Literals (`true` / `false`)
 
@@ -339,9 +389,9 @@ can_deploy($user, $env) IF
 ```
 
 **Parsing rules:**
-- If a line ends with `IF` or `AND`, the parser continues to the next line
-  (*trailing* style)
-- If a line starts with `AND`, it continues the rule written above it
+- If a line ends with `IF`, `AND`, or `OR`, the parser continues to the next
+  line (*trailing* style)
+- If a line starts with `AND` or `OR`, it continues the rule written above it
   (*leading* style — the common Prolog habit):
 
   ```
@@ -350,10 +400,18 @@ can_deploy($user, $env) IF
             AND dimmi($y)
   ```
 
+- OR branches can span lines too:
+
+  ```
+  can_deploy($u, $env) IF
+      is_admin($u) OR
+      (has_role($u, dev) AND env_approved($u, $env))
+  ```
+
 - All parts are joined into a single rule statement
 - Indentation is ignored (cosmetic only)
 
-A leading `AND` without a preceding rule is a parse error.
+A leading `AND` / `OR` without a preceding rule is a parse error.
 
 ### Wildcard Arguments
 
@@ -599,6 +657,27 @@ If the rules carry `# RULE:` IDs, `explain` cites them: *"mortal(socrates) is
 derived by rule BIO-001 from: human(socrates)."* and the `structured_steps`
 `rule_id` fields carry the ID.
 
+### 9. Disjunction (OR)
+
+```
+user(alice)
+user(bob)
+user(carol)
+role(alice, admin)
+role(carol, support)
+signed_off(bob)
+
+# Admin OR support — expanded into two Horn clauses at parse time
+can_escalate($u) IF role($u, admin) OR role($u, support)  # RULE: ESC-1
+
+# Group with AND > OR precedence: (auditor OR controller) AND signed_off
+promoted($u) IF (role($u, auditor) OR role($u, controller)) AND signed_off($u)
+? can_escalate($who)
+```
+
+**Result:** `$who = alice`, `$who = carol` — each produced through its own
+Or-branch of rule `ESC-1`, so `explain` cites the same source rule for both.
+
 ---
 
 ## Comparison with Prolog
@@ -624,7 +703,7 @@ derived by rule BIO-001 from: human(socrates)."* and the `structured_steps`
 - `NOT` instead of `\+`
 - `?` prefix for queries
 - `!=` instead of `=\=`, `<=` instead of `=<`, `==` instead of `=:=`
-- No cut (`!`), no disjunction (`;`), no list syntax
+- No cut (`!`), no `;` (use `OR` — it's desugared to Horn clauses), no list syntax
 
 ---
 
@@ -644,7 +723,7 @@ Euclid-IR is a **simplified subset of Horn-clause logic** — the core of Prolog
 | Rule IDs | ✅ Supported | `# RULE: <id>` trailing comment, surfaced as `rule_id` in proofs |
 | Boolean literals | ✅ Supported | `true` / `false` in rule bodies; reserved as predicate names |
 | Case-insensitive | ✅ Supported | `Human(ALICE)` → `human(alice)` |
-| Disjunction (OR) | ❌ Not supported | Use multiple rules instead |
+| Disjunction (OR) | ✅ Supported | In rule bodies; expanded to Horn clauses at parse time. `AND` binds tighter than `OR`; groups `(...)` supported; `NOT (group)` rejected |
 | Cut (!) | ❌ Not supported | No backtracking control |
 | Lists `[H\|T]` | ❌ Not supported | No pattern matching on lists |
 | findall/bagof | ❌ Not supported | No collection of solutions |
@@ -653,11 +732,9 @@ Euclid-IR is a **simplified subset of Horn-clause logic** — the core of Prolog
 
 **Workarounds:**
 
-- **OR:** Define separate rules:
+- **OR:** write it directly — the parser expands it for you:
   ```
-  # Instead of: mortal($x) IF human($x) OR god($x)
-  mortal($x) IF human($x)
-  mortal($x) IF god($x)
+  mortal($x) IF human($x) OR god($x)
   ```
 
 - **Lists:** Represent as facts:
@@ -733,7 +810,7 @@ Common parsing errors and fixes:
 | "No query found" | Missing `?` line | Add `? predicate(...)` at the end |
 | "Invalid variable" | `$X` or `$123` | Use `$x` or `$name` (lowercase after `$`) |
 | "Unterminated rule" | Missing body after `IF` | Add at least one condition |
-| "Unknown keyword" | A reserved keyword used as a predicate name | Rename the predicate (`if`, `and`, `not`, `is`, `true`, `false` are reserved) |
+| "Unknown keyword" | A reserved keyword used as a predicate name | Rename the predicate (`if`, `and`, `or`, `not`, `is`, `true`, `false` are reserved) |
 
 ---
 

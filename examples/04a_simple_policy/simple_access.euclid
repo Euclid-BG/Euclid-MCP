@@ -1,7 +1,7 @@
 # Simple Access Policy — Euclid IR
 # Intermediate example: covers string literals, @version, multi-line rules,
-# NOT, arithmetic (>=, ==, !=, <=), wildcards, AND, zero-arity facts,
-# and both comment styles.
+# NOT, arithmetic (>=, ==, !=, <=), wildcards, AND, OR (disjunction, with
+# groups and AND > OR precedence), zero-arity facts, and both comment styles.
 
 @version 1.0
 
@@ -11,6 +11,8 @@ user(alice)
 user(bob)
 user(carol)
 user(dave)
+user(erin)
+user(frank)
 
 # resource(id, name, classification_level)
 # 1 = public, 2 = internal, 3 = confidential, 4 = secret
@@ -28,6 +30,8 @@ has_role(alice, admin)
 has_role(bob, analyst)
 has_role(carol, analyst)
 has_role(dave, intern)
+has_role(erin, support)
+has_role(frank, contractor)
 
 // ── Policy rules ──
 
@@ -56,6 +60,17 @@ can_access($user, $res) IF
 blocked($user) IF
     user($user) AND
     has_role($user, intern)  # RULE: POL-04
+
+# Support staff (role) or contractors (role) can access internal and public
+# resources (level <= 2). The OR expands into two Horn clauses at parse time:
+#   can_access($user, $res) IF ... has_role($user, support) ...
+#   can_access($user, $res) IF ... has_role($user, contractor) ...
+# AND binds tighter than OR, so the group is (support OR contractor) AND level.
+can_access($user, $res) IF
+    user($user) AND
+    (has_role($user, support) OR has_role($user, contractor)) AND
+    resource($res, _, $level) AND
+    $level <= 2  # RULE: POL-05
 
 // ── Access check: user must not be blocked AND must have access ──
 

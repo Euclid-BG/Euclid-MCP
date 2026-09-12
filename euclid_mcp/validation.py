@@ -265,19 +265,24 @@ def run_check_kb(knowledge: str) -> KBCheckResult:
         for w in lint_warnings:
             warnings.append(KBError(type="unsafe_negation", message=w))
 
-    # Check 7: duplicate rule IDs
+    # Check 7: duplicate rule IDs. A single source rule with an OR expands into
+    # sibling rules sharing one ID (kb.rule_sources records the origin), so
+    # only an ID shared by rules with DIFFERENT origins is a real duplicate.
     seen_rule_ids: dict[str, int] = {}
     for idx, rule in enumerate(kb.rules):
         rid = kb.rule_ids.get(idx)
         if not rid:
             continue
-        if rid in seen_rule_ids:
+        origin = kb.rule_sources.get(idx, idx)
+        prev_origin = seen_rule_ids.get(rid)
+        if prev_origin is not None and prev_origin != origin:
             warnings.append(KBError(
                 type="duplicate_rule_id",
                 message=f"Duplicate rule ID: {rid}",
                 predicate=rid,
             ))
-        seen_rule_ids[rid] = seen_rule_ids.get(rid, 0) + 1
+        else:
+            seen_rule_ids[rid] = origin
 
     # Check 8: inconsistent arity
     predicate_infos: list[PredicateInfo] = []

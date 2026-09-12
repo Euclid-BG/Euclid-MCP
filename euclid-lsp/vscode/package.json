@@ -2,7 +2,7 @@
   "name": "euclid-ir",
   "displayName": "Euclid-IR",
   "description": "Language support for Euclid-IR — deterministic logical reasoning",
-  "version": "0.4.5",
+  "version": "0.5.0",
   "publisher": "euclid-mcp",
   "license": "Apache-2.0",
   "engines": {

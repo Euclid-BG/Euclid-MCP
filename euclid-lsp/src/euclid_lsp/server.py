@@ -26,7 +26,7 @@ class EuclidLanguageServer(LanguageServer):
     def __init__(self) -> None:
         super().__init__(
             name="euclid-lsp",
-            version="0.4.5",
+            version="0.5.0",
         )
 
 

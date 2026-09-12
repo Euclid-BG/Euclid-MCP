@@ -119,7 +119,7 @@ Manual install — clone into your Packages directory:
 ```bash
 cd ~/.config/sublime-text/Packages/User  # Linux
 # or ~/Library/Application Support/Sublime Text/Packages/User  # macOS
-git clone https://github.com/meob/Euclid-MCP.git LSP-euclid
+git clone https://github.com/Euclid-BG/Euclid-MCP.git LSP-euclid
 ```
 
 Or add to `Preferences → Package Settings → LSP → Server Configurations`:

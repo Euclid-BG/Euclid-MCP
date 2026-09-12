@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "euclid-mcp"
-version = "0.4.6"
+version = "0.5.0"
 description = "MCP server for deterministic logical reasoning via Prolog — transforms facts into formal proofs"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -42,8 +42,8 @@ dev = [
 ]
 
 [project.urls]
-homepage = "https://github.com/meob/Euclid-MCP"
-repository = "https://github.com/meob/Euclid-MCP"
+homepage = "https://github.com/Euclid-BG/Euclid-MCP"
+repository = "https://github.com/Euclid-BG/Euclid-MCP"
 
 [project.scripts]
 euclid-mcp = "euclid_mcp:main"
