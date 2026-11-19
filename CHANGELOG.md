@@ -4,6 +4,21 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.5.1] — 2026-11-19
+
+### Added
+- **SWI-Prolog 11.0.0 CI coverage** — the full suite now also runs inside a
+  `swipl:11.0.0` container with `EUCLID_BACKEND=prolog`, so a missing `swipl`
+  cannot silently fall back to the native engine and mask an incompatibility.
+
+### Changed
+- **Docker base image pinned to `swipl:11.0.0`** instead of the floating
+  `swipl:stable` tag; the image now ships Debian Trixie with Python 3.13.
+- **Compatibility matrix and docs updated** for SWI-Prolog 11.0.0: 630/630
+  tests pass with the Prolog backend (629 passed + 1 skipped with native),
+  alongside lint, mypy, the MCP tools, the backend-parity scripts and both
+  Docker images. No engine changes were required.
+
 ## [0.5.0] — 2026-09-12
 
 ### Added

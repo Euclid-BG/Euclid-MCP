@@ -58,3 +58,22 @@ jobs:
           files: coverage.xml
           fail_ci_if_error: false
           token: ${{ secrets.CODECOV_TOKEN }}
+
+  test-swipl-11:
+    name: Test (SWI-Prolog 11.0.0 container)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Lint, type check and test on SWI-Prolog 11.0.0
+        run: |
+          docker run --rm -v "$PWD":/app -w /app swipl:11.0.0 bash -c '
+            set -e
+            apt-get update
+            DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends python3-pip python3-venv
+            python3 -m pip install --no-cache-dir --break-system-packages uv
+            uv sync --frozen --all-packages --extra dev
+            uv run ruff check .
+            uv run mypy euclid_mcp integrations
+            EUCLID_BACKEND=prolog uv run pytest --cov=euclid_mcp --cov=integrations -q
+          '

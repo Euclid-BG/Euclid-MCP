@@ -426,7 +426,7 @@ wheels = [
 
 [[package]]
 name = "euclid-lsp"
-version = "0.4.5"
+version = "0.5.1"
 source = { editable = "euclid-lsp" }
 dependencies = [
     { name = "euclid-mcp" },
@@ -456,7 +456,7 @@ provides-extras = ["dev"]
 
 [[package]]
 name = "euclid-mcp"
-version = "0.4.6"
+version = "0.5.1"
 source = { editable = "." }
 dependencies = [
     { name = "mcp" },

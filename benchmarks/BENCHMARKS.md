@@ -6,7 +6,7 @@ in [`docs/`](docs/).
 
 **Environment (2026-08-12/08-14 runs):** SWI-Prolog 10.0.2 (arm64-darwin), Python
 3.12.11, `.venv`. The SWI-Prolog compatibility matrix (benchmark 6) spans
-8.4.2/9.0.4/9.2.9/10.0.2.
+8.4.2/9.0.4/9.2.9/10.0.2 and was re-verified on 11.0.0 on 2026-11-19.
 
 ## Index
 
@@ -17,7 +17,7 @@ in [`docs/`](docs/).
 | 3 | `persistent_engine_benchmark.py` | Stateless subprocess vs persistent engine | **12.1×** mean steady-state speedup | [03](docs/03-persistent-engine.md) |
 | 4 | `solution_cap_benchmark.py` | Engine-side `max_solutions` cap stops work early | Capped time flat (0.6→23 ms); ratio vs uncapped grows 19×→54× | [04](docs/04-solution-cap.md) |
 | 5 | `euclid_bench.py` | Stress & soak: mixing, pollution, restart, API under load | workers=1, workers=4 & API **PASS** | [05](docs/05-stress-soak.md) |
-| 6 | — (full suite + CI) | Engine correctness across SWI-Prolog 8.4.2/9.0.4/9.2.9/10.0.2 | **256/256 PASS** on all versions | [06](docs/06-swi-prolog-versions.md) |
+| 6 | — (full suite + CI) | Engine correctness across SWI-Prolog 8.4.2/9.0.4/9.2.9/10.0.2/11.0.0 | **PASS** on all versions (630/630 on 11.0.0) | [06](docs/06-swi-prolog-versions.md) |
 | 7 | `native_vs_prolog_benchmark.py` | Native Euclid-IR engine vs SWI-Prolog on example 07 (10 queries, 2 KB sizes) | **Parity** (all solution counts match); native ~7× slower aggregate, ~1.3–2.5× on typical queries, up to 17–32× on high-solution joins & exhaustive-failure `NOT` queries | [07](docs/07-native-vs-prolog.md) |
 | 8 | `euclid_bench.py --api-url` | Remote (containerized) HTTP API under load; report reads restarts/uptime from `GET /metrics` | **PASS** (v0.4.1, local API) | [08](docs/08-monitoring.md) |
 
@@ -54,14 +54,15 @@ in [`docs/`](docs/).
     **→** Found and fixed a real restart bug (see below) and the load+query
     atomicity gap; `euclid_bench.py` stays as the regression detector for both.
 
-6. **SWI-Prolog version compatibility (2026-08-13, v0.3.1).** The full suite
-   passes on SWI-Prolog 8.4.2 (Ubuntu 22.04), 9.0.4 (CI), 9.2.9 (Debian), and
-   10.0.2 (macOS). The first CI run on the 9.x line exposed a real engine bug:
-   `clear_workspace` retracted SWI-Prolog's own dynamic bookkeeping and
-   corrupted the autoloader (`domain_error(file_type, prolog)`). The registry
-   fix is ~19% faster (513 vs 429 req/s), not slower. **→** The engine is
-   portable across the supported SWI-Prolog releases; the 9.x CI matrix keeps
-   guarding it.
+6. **SWI-Prolog version compatibility (2026-08-13, v0.3.1; 11.0.0 re-check
+   2026-11-19).** The full suite passes on SWI-Prolog 8.4.2 (Ubuntu 22.04),
+   9.0.4 (CI), 9.2.9 (Debian), 10.0.2 (macOS) and 11.0.0 (Homebrew, Docker
+   image and CI container). The first CI run on the 9.x line exposed a real
+   engine bug: `clear_workspace` retracted SWI-Prolog's own dynamic bookkeeping
+   and corrupted the autoloader (`domain_error(file_type, prolog)`). The
+   registry fix is ~19% faster (513 vs 429 req/s), not slower. **→** The engine
+   is portable across the supported SWI-Prolog releases; the 9.x CI matrix and
+   the new 11.0.0 container job keep guarding it.
 
 7. **Native engine vs SWI-Prolog (2026-08-14, v0.4.0).** The first head-to-head
    between the pure-Python native engine and SWI-Prolog on example 07 (10
@@ -105,7 +106,7 @@ in [`docs/`](docs/).
 - **SWI-Prolog 9.x safety** (v0.3.1, Benchmark 6): `clear_workspace` now
   retracts only the registered workspace predicates (`workspace_predicate/1`)
   instead of every dynamic predicate, keeping the engine correct on
-  SWI-Prolog 8.x–10.x (see `benchmarks/docs/06-swi-prolog-versions.md`).
+  SWI-Prolog 8.x–11.x (see `benchmarks/docs/06-swi-prolog-versions.md`).
 - **Remote API benchmark mode** (v0.4.1, Benchmark 8): `--api-url` stresses a
   real deployment (containerized API + its own `swipl`), and the report reads
   restarts/uptime from `GET /metrics` — the same observability surface the

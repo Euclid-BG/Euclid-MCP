@@ -769,7 +769,7 @@ curl -X POST http://localhost:8080/unregister-kb \
 ### Docker
 
 The Docker image bundles SWI-Prolog + Python, so no local prerequisites are needed.
-Base image: [`swipl:stable`](https://hub.docker.com/_/swipl) (Debian Bookworm).
+Base image: [`swipl:11.0.0`](https://hub.docker.com/_/swipl) (Debian Trixie).
 
 **Two modes via docker-compose:**
 
@@ -802,7 +802,7 @@ print(r.solutions[0].substitutions)
 "
 ```
 
-**Docker image size:** ~370 MB (SWI-Prolog + Python 3.11 + dependencies).
+**Docker image size:** ~550 MB (SWI-Prolog 11.0.0 + Python 3.13 + dependencies).
 
 **Native-only (slim):** a smaller image with the pure-Python Euclid-IR engine
 and no SWI-Prolog (`EUCLID_BACKEND=native`). Best for containers with limited
@@ -866,7 +866,7 @@ hardening, and monitoring for a replica battery behind HAProxy:
 
 ## Development
 
-Requirements: Python ≥ 3.10, SWI-Prolog.
+Requirements: Python ≥ 3.10, SWI-Prolog (tested on 8.4.2–11.0.0).
 
 ```bash
 # Install in editable mode with dev dependencies
