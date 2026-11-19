@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-## [Unreleased]
+## [0.5.1] — 2026-11-19
 
 ### Added
 - **SWI-Prolog 11.0.0 CI coverage** — the full suite now also runs inside a
