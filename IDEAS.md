@@ -20,7 +20,7 @@
 - `list_kbs` — list registered named KBs (metadata)
 
 ## Deployment
-- Docker image (`swipl:stable` base) — MCP stdio + HTTP API modes
+- Docker image (`swipl:11.0.0` base) — MCP stdio + HTTP API modes
 - Native-only slim image (`Dockerfile.native`, `python:3.12-slim`) — pure-Python engine, no SWI-Prolog installed
 - Production reference: `docs/PRODUCTION.md` (stateless replicas behind HAProxy); monitoring stack in `monitoring/` (Prometheus + Grafana + cAdvisor)
 - Tooling: `euclid-cli` (subcommands + interactive Euclid-IR REPL), `euclid-lsp/` (Language Server for Euclid-IR)
